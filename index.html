@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/skulpt/1.2.0/skulpt.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/skulpt/1.2.0/skulkt-stdlib.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#1c2128;--bg4:#21262d;--bd:#30363d;--accent:#58a6ff;--green:#3fb950;--yellow:#d29922;--red:#f85149;--text:#c9d1d9;--text2:#8b949e}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+.nav{background:var(--bg2);border-bottom:1px solid var(--bd);padding:0 16px;height:50px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.logo{font-weight:700;font-size:16px;color:var(--accent);display:flex;align-items:center;gap:6px}
+.logo svg{stroke:var(--accent)}
+.rtog{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:3px;display:flex;gap:2px}
+.rbtn{padding:4px 14px;border-radius:6px;border:none;background:transparent;color:var(--text2);font-size:13px;cursor:pointer;font-weight:500}
+.rbtn.on{background:var(--accent);color:#fff}
+.full-center{flex:1;display:flex;align-items:center;justify-content:center;background:var(--bg)}
+.card{background:var(--bg2);border:1px solid var(--bd);border-radius:16px;padding:36px;width:480px;display:flex;flex-direction:column;gap:18px}
+.card-sm{width:420px}
+.jlabel{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px}
+.jinp{width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;color:var(--text);padding:10px 14px;font-size:14px;outline:none}
+.jinp:focus{border-color:var(--accent)}
+.code-inp{text-transform:uppercase;letter-spacing:4px;font-size:20px;font-weight:700;text-align:center;font-family:monospace}
+.join-err{color:var(--red);font-size:13px;display:none}
+.demo-hint{background:rgba(88,166,255,.07);border:1px solid rgba(88,166,255,.15);border-radius:8px;padding:12px;font-size:12px;color:var(--text2);line-height:1.6}
+.lobby-av{width:48px;height:48px;border-radius:50%;background:rgba(88,166,255,.15);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;flex-shrink:0}
+.lobby-status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);margin-top:4px}
+.ldot{width:7px;height:7px;border-radius:50%;background:var(--yellow);animation:pulse 2s infinite}
+.who-chip{background:var(--bg3);border:1px solid var(--bd);border-radius:20px;padding:4px 12px;font-size:12px;display:flex;align-items:center;gap:5px}
+.info-box{background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:14px}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+/* TIMER */
+.timer-pill{display:flex;align-items:center;gap:6px;padding:4px 12px;border-radius:8px;border:1px solid var(--bd);background:var(--bg3);font-family:monospace;font-weight:700;font-size:15px;transition:all .3s;white-space:nowrap}
+.timer-pill.ok{color:var(--text)}.timer-pill.warn{color:var(--yellow);border-color:rgba(210,153,34,.4);background:rgba(210,153,34,.08)}
+.timer-pill.urgent{color:var(--red);border-color:rgba(248,81,73,.4);background:rgba(248,81,73,.08);animation:tpulse 1s infinite}
+.timer-pill.up{color:var(--red);border-color:rgba(248,81,73,.4);background:rgba(248,81,73,.08)}
+@keyframes tpulse{0%,100%{opacity:1}50%{opacity:.6}}
+.timer-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.t-ctrl{display:flex;gap:4px}
+.t-btn{background:var(--bg4);border:1px solid var(--bd);color:var(--text2);border-radius:5px;padding:3px 9px;cursor:pointer;font-size:11px;font-weight:600}
+.t-btn:hover{border-color:var(--accent);color:var(--accent)}
+.t-btn.danger:hover{border-color:var(--red);color:var(--red)}
+/* QUEUE */
+.q-section{background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:10px}
+.q-hdr{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.q-item{display:flex;align-items:center;gap:7px;padding:8px 9px;border-radius:6px;border:1px solid var(--bd);background:var(--bg2);margin-bottom:5px;transition:all .2s}
+.q-item:last-child{margin-bottom:0}
+.q-item.live{border-color:var(--accent);background:rgba(88,166,255,.07)}
+.q-item.done{opacity:.55}
+.q-num{width:20px;height:20px;border-radius:50%;background:var(--bg4);color:var(--text2);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.q-item.live .q-num{background:var(--accent);color:#fff}
+.q-item.done .q-num{background:var(--green);color:#fff}
+.q-title{flex:1;font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+.q-diff{font-size:10px;font-weight:600;padding:1px 5px;border-radius:3px}
+.q-acts{display:flex;gap:2px;flex-shrink:0}
+.qbtn{background:transparent;border:1px solid var(--bd);color:var(--text2);border-radius:3px;padding:1px 5px;cursor:pointer;font-size:10px;line-height:1.4}
+.qbtn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.qbtn:disabled{opacity:.3;cursor:default}
+.qbtn.rm:hover{border-color:var(--red);color:var(--red)}
+.q-empty{text-align:center;padding:12px;font-size:12px;color:var(--text2)}
+/* HISTORY */
+.hist-panel-left{width:300px;background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.hist-list{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:6px}
+.hist-card{background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:12px;cursor:pointer;transition:all .15s}
+.hist-card:hover{border-color:var(--accent)}
+.hist-card.sel{border-color:var(--accent);background:rgba(88,166,255,.06)}
+.hist-date{font-size:11px;color:var(--text2);margin-bottom:3px}
+.hist-title{font-size:13px;font-weight:600;color:#e6edf3;margin-bottom:7px;line-height:1.3}
+.hist-stats{display:flex;gap:10px;flex-wrap:wrap}
+.hist-stat{font-size:11px;color:var(--text2)}
+.hist-stat strong{color:var(--text)}
+.hist-detail{flex:1;overflow-y:auto;padding:24px;background:var(--bg)}
+.hist-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:var(--text2);text-align:center;padding:24px}
+.score-bar{height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;margin-top:4px}
+.score-fill{height:100%;border-radius:3px;background:var(--accent)}
+/* STUDENT */
+#sv{display:flex;flex:1;overflow:hidden}
+.qpanel{width:36%;background:var(--bg2);border-right:1px solid var(--bd);overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:14px;flex-shrink:0}
+.qbadge{display:inline-flex;align-items:center;background:rgba(88,166,255,.1);color:var(--accent);border:1px solid rgba(88,166,255,.2);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:600}
+.prog-badge{display:inline-flex;align-items:center;background:rgba(63,185,80,.1);color:var(--green);border:1px solid rgba(63,185,80,.2);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:600;margin-left:5px}
+.qtitle{font-size:17px;font-weight:700;color:#e6edf3;line-height:1.4}
+.qdesc{font-size:13px;color:var(--text2);line-height:1.7;white-space:pre-wrap}
+.qst{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.cblk{background:var(--bg);border:1px solid var(--bd);border-radius:6px;padding:12px;font-family:monospace;font-size:12px;color:#e6edf3;line-height:1.6;white-space:pre;overflow-x:auto}
+.tc{background:var(--bg3);border:1px solid var(--bd);border-left:3px solid var(--bd);border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:4px;transition:border-color .3s}
+.tc-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.tc-io{font-family:monospace;font-size:12px;color:var(--text2)}
+.hint{font-size:12px;color:var(--text2);padding-left:16px;position:relative;line-height:1.5}
+.hint::before{content:'💡';position:absolute;left:0}
+.prev-sub{background:rgba(88,166,255,.05);border:1px solid rgba(88,166,255,.18);border-radius:8px;padding:10px 12px;font-size:12px;cursor:pointer}
+.prev-sub-hdr{display:flex;align-items:center;justify-content:space-between;font-weight:600;color:var(--accent)}
+.prev-sub-body{margin-top:8px;color:var(--text2);line-height:1.5;display:none}
+.epanel{flex:1;display:flex;flex-direction:column;min-width:0}
+.etb{background:var(--bg3);border-bottom:1px solid var(--bd);padding:7px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.lsel{background:var(--bg2);border:1px solid var(--bd);border-radius:5px;color:var(--text);padding:3px 8px;font-size:12px;cursor:pointer;outline:none}
+.estats{display:flex;gap:14px;font-size:11px;color:var(--text2)}
+.ewrap{flex:1;display:flex;overflow:hidden}
+.lnums{background:var(--bg2);border-right:1px solid var(--bd);padding:14px 8px;font-family:monospace;font-size:12.5px;line-height:1.65;color:var(--text2);text-align:right;min-width:44px;user-select:none;overflow:hidden;white-space:pre}
+#editor{flex:1;background:#0d1117;color:#e6edf3;border:none;outline:none;padding:14px;font-family:'JetBrains Mono','Fira Code',monospace;font-size:12.5px;line-height:1.65;resize:none;tab-size:4;white-space:pre;overflow-wrap:normal;overflow-x:auto}
+#console-out{background:var(--bg);border-top:1px solid var(--bd);padding:8px 14px;font-family:monospace;font-size:12px;color:#7ee787;max-height:80px;overflow-y:auto;display:none;white-space:pre-wrap}
+.efooter{background:var(--bg3);border-top:1px solid var(--bd);padding:9px 14px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap}
+.act-ind{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);flex:1;min-width:0}
+.adot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.pystatus{display:flex;align-items:center;gap:5px;font-size:11px;padding:3px 9px;border-radius:10px;background:var(--bg4);border:1px solid var(--bd);white-space:nowrap}
+.btn{padding:5px 14px;border-radius:6px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all .15s}
+.btn-sec{background:var(--bg4);color:var(--text);border:1px solid var(--bd)}
+.btn-sec:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.btn-sec:disabled{opacity:.45;cursor:not-allowed}
+.btn-pri{background:var(--accent);color:#fff}
+.btn-pri:hover:not(:disabled){opacity:.88}
+.btn-pri:disabled{opacity:.5;cursor:not-allowed}
+.btn-sm{padding:3px 10px;font-size:12px}
+.btn-green{background:var(--green);color:#fff}
+.btn-green:hover:not(:disabled){opacity:.88}
+.btn-danger{background:transparent;border:1px solid rgba(248,81,73,.35);color:var(--red)}
+.btn-danger:hover{background:rgba(248,81,73,.08);border-color:var(--red)}
+#fbpanel{background:var(--bg2);border-top:1px solid var(--bd);padding:14px 18px;flex-shrink:0;max-height:270px;overflow-y:auto}
+.fbhdr{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.scircle{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;flex-shrink:0}
+.sp{background:rgba(63,185,80,.12);color:var(--green);border:2px solid var(--green)}
+.sf{background:rgba(248,81,73,.12);color:var(--red);border:2px solid var(--red)}
+.fbgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.fbsec{background:var(--bg3);border-radius:6px;padding:10px}
+.fbsec h4{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.fbsec.str h4{color:var(--green)}.fbsec.imp h4{color:var(--yellow)}
+.fblist{list-style:none;display:flex;flex-direction:column;gap:3px}
+.fblist li{font-size:12px;color:var(--text2);padding-left:14px;position:relative;line-height:1.4}
+.fblist li::before{content:'→';position:absolute;left:0;opacity:.5}
+/* TEACHER */
+#tv{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.ttabs{background:var(--bg2);border-bottom:1px solid var(--bd);padding:0 16px;display:flex;gap:2px;flex-shrink:0}
+.ttab{padding:10px 16px;border:none;background:transparent;color:var(--text2);font-size:13px;cursor:pointer;font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px}
+.ttab:hover{color:var(--text)}
+.ttab.on{color:var(--accent);border-bottom-color:var(--accent)}
+#tv-session{flex:1;display:flex;overflow:hidden}
+.sess-left{width:320px;background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.sess-left-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+.sess-right{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.sess-roster-hdr{padding:12px 16px;border-bottom:1px solid var(--bd);font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.roster-list{flex:1;overflow-y:auto;padding:8px}
+.roster-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;transition:background .1s}
+.roster-row:hover{background:var(--bg3)}
+.roster-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
+.roster-name{font-size:13px;font-weight:500;flex:1}
+.roster-time{font-size:11px;color:var(--text2);white-space:nowrap}
+.roster-status{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;white-space:nowrap}
+.rs-joined{background:rgba(63,185,80,.12);color:var(--green)}
+.kick-btn{background:transparent;border:none;color:var(--text2);cursor:pointer;font-size:12px;padding:3px 7px;border-radius:4px}
+.kick-btn:hover{color:var(--red);background:rgba(248,81,73,.08)}
+.empty-roster{text-align:center;padding:40px 20px;color:var(--text2);font-size:13px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.code-display{background:var(--bg);border:2px solid var(--accent);border-radius:12px;padding:16px;text-align:center}
+.code-big{font-family:monospace;font-size:38px;font-weight:900;letter-spacing:10px;color:#e6edf3;line-height:1}
+.code-lbl{font-size:11px;color:var(--text2);margin-top:6px;text-transform:uppercase;letter-spacing:.5px}
+.copy-btn{background:rgba(88,166,255,.1);border:1px solid rgba(88,166,255,.25);color:var(--accent);border-radius:6px;padding:5px 14px;cursor:pointer;font-size:12px;font-weight:600;margin-top:8px;display:inline-block}
+.copy-btn:hover{background:rgba(88,166,255,.2)}
+.tstats{background:var(--bg2);border-bottom:1px solid var(--bd);padding:8px 16px;display:flex;gap:8px;align-items:center;flex-shrink:0;flex-wrap:wrap}
+.sc{background:var(--bg3);border:1px solid var(--bd);border-radius:7px;padding:7px 12px;display:flex;flex-direction:column;gap:1px}
+.sv2{font-size:20px;font-weight:700;color:#e6edf3}
+.sl{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.tbody{flex:1;display:flex;overflow:hidden}
+.apanel{width:280px;background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;flex-shrink:0}
+.ph{padding:10px 14px;border-bottom:1px solid var(--bd);font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:space-between}
+.abadge{background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px}
+.alist{flex:1;overflow-y:auto;padding:6px;display:flex;flex-direction:column;gap:5px}
+.aitem{background:var(--bg3);border-radius:7px;padding:9px 11px;display:flex;gap:9px;border-left:3px solid transparent}
+.aitem.idle{border-color:var(--yellow)}.aitem.paste{border-color:var(--red)}.aitem.sub{border-color:var(--green)}.aitem.join{border-color:var(--accent)}
+.aico{font-size:15px;flex-shrink:0}
+.atxt{font-size:12px;color:var(--text)}.atim{font-size:11px;color:var(--text2);margin-top:2px}
+.sarea{flex:1;overflow-y:auto;padding:16px}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.stcard{background:var(--bg2);border:1px solid var(--bd);border-radius:9px;padding:14px;cursor:pointer;transition:all .15s}
+.stcard:hover{border-color:var(--accent);transform:translateY(-1px)}
+.stcard.alert{border-color:rgba(248,81,73,.4)}
+.sthdr{display:flex;align-items:center;gap:9px;margin-bottom:11px}
+.av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0}
+.stn{font-weight:600;font-size:13px;color:#e6edf3}
+.stbadge{font-size:11px;padding:2px 7px;border-radius:10px;font-weight:600;margin-top:2px;display:inline-block}
+.st-active{background:rgba(63,185,80,.15);color:var(--green)}.st-idle{background:rgba(210,153,34,.15);color:var(--yellow)}
+.st-submitted{background:rgba(88,166,255,.15);color:var(--accent)}.st-lobby{background:var(--bg4);color:var(--text2)}
+.stmet{display:flex;flex-direction:column;gap:7px}
+.mrow{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text2)}
+.mv{font-weight:600;color:var(--text)}
+.pbar{height:3px;background:var(--bg);border-radius:2px;overflow:hidden;margin-top:3px}
+.pfill{height:100%;border-radius:2px;background:var(--accent);transition:width .5s}
+.calerts{margin-top:8px;display:flex;gap:5px;flex-wrap:wrap}
+.malert{font-size:11px;padding:2px 7px;border-radius:4px}
+.malert.paste{background:rgba(248,81,73,.1);color:var(--red)}.malert.idle{background:rgba(210,153,34,.1);color:var(--yellow)}
+.livepill{font-size:10px;background:rgba(88,166,255,.15);color:var(--accent);padding:1px 5px;border-radius:8px;margin-left:4px}
+.tbars{display:flex;gap:3px;margin-top:8px}
+.tbar{flex:1;height:5px;border-radius:2px;background:var(--bg4)}
+.tbar.pass{background:var(--green)}.tbar.fail{background:var(--red)}
+/* ASSIGNMENTS */
+.ab-wrap{display:flex;flex:1;overflow:hidden}
+.ab-list-panel{width:260px;background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.ab-list-hdr{padding:12px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600;flex-shrink:0}
+.ab-cards{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:6px}
+.ab-card{background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:12px;cursor:pointer;transition:all .15s}
+.ab-card:hover{border-color:var(--accent)}
+.ab-card.sel{border-color:var(--accent);background:rgba(88,166,255,.06)}
+.ab-card-title{font-size:13px;font-weight:600;color:#e6edf3;margin-bottom:6px;line-height:1.3}
+.ab-card-meta{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px}
+.ab-card-footer{display:flex;align-items:center;justify-content:space-between}
+.pill{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600}
+.p-pub{background:rgba(63,185,80,.15);color:var(--green)}.p-draft{background:var(--bg4);color:var(--text2)}
+.p-queued{background:rgba(88,166,255,.15);color:var(--accent)}.p-lang{background:rgba(88,166,255,.12);color:var(--accent)}
+.p-easy{background:rgba(63,185,80,.12);color:var(--green)}.p-med{background:rgba(210,153,34,.12);color:var(--yellow)}.p-hard{background:rgba(248,81,73,.12);color:var(--red)}
+.ab-editor-panel{flex:1;overflow-y:auto;background:var(--bg)}
+.ab-form{padding:20px;max-width:720px}
+.ab-form-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--bd);flex-wrap:wrap;gap:10px}
+.pub-badge{background:rgba(63,185,80,.12);color:var(--green);font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;border:1px solid rgba(63,185,80,.25)}
+.draft-badge{background:var(--bg4);color:var(--text2);font-size:11px;padding:2px 8px;border-radius:10px;border:1px solid var(--bd)}
+.fg{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.fg label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.fi{background:var(--bg2);border:1px solid var(--bd);border-radius:6px;color:var(--text);padding:7px 10px;font-size:13px;outline:none;width:100%;font-family:inherit}
+.fi:focus{border-color:var(--accent)}
+textarea.fi{resize:vertical;min-height:80px;line-height:1.6}
+select.fi{cursor:pointer}
+.tc-grid{display:grid;grid-template-columns:1fr 1fr 28px;gap:7px;margin-bottom:7px;align-items:center}
+.tc-hdr{display:grid;grid-template-columns:1fr 1fr 28px;gap:7px;margin-bottom:6px}
+.tc-hdr-lbl{font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.4px}
+.rmbtn{background:transparent;border:1px solid var(--bd);color:var(--text2);border-radius:5px;padding:4px 7px;cursor:pointer;font-size:11px}
+.rmbtn:hover{color:var(--red);border-color:rgba(248,81,73,.5)}
+.del-btn{background:transparent;border:none;color:var(--red);font-size:12px;cursor:pointer;padding:4px 0;opacity:.7}
+.del-btn:hover{opacity:1}
+.sect-box{background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:12px}
+.confirm-over{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:2000;display:flex;align-items:center;justify-content:center}
+.confirm-box{background:var(--bg2);border:1px solid var(--bd);border-radius:12px;padding:24px;width:340px;display:flex;flex-direction:column;gap:14px}
+.confirm-title{font-size:15px;font-weight:700;color:#e6edf3}
+.confirm-body{font-size:13px;color:var(--text2);line-height:1.6}
+.confirm-btns{display:flex;gap:8px;justify-content:flex-end}
+.mover{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--bg2);border:1px solid var(--bd);border-radius:10px;width:680px;max-height:82vh;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px}
+.mhdr{display:flex;justify-content:space-between;align-items:flex-start}
+.cbtn{background:var(--bg3);border:1px solid var(--bd);color:var(--text);border-radius:5px;padding:3px 9px;cursor:pointer;font-size:12px}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:sp .8s linear infinite;vertical-align:middle;margin-right:5px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--bg2);color:var(--text);border:1px solid var(--bd);padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;z-index:9999;animation:tup .25s ease}
+@keyframes tup{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
+.badge-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;margin-right:4px;vertical-align:middle}
+.divider{height:1px;background:var(--bd)}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="logo">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+    CodeClass
+  </div>
+  <div id="nav-user" style="font-size:13px;color:var(--text2);display:none"></div>
+  <div id="nav-teacher-area" style="display:flex;align-items:center;gap:8px">
+    <button class="btn btn-sec btn-sm" id="teacher-login-btn" onclick="showTeacherLogin()" style="font-size:12px;border-color:rgba(88,166,255,.3);color:var(--accent)">🔐 Teacher Login</button>
+    <div id="teacher-logged-in" style="display:none;align-items:center;gap:8px">
+      <span id="teacher-name-display" style="font-size:12px;color:var(--text2)"></span>
+      <button class="btn btn-pri btn-sm" onclick="switchV('teacher')">Dashboard</button>
+      <button class="btn btn-sec btn-sm" onclick="logoutTeacher()">Logout</button>
+    </div>
+  </div>
+</nav>
+
+<!-- JOIN -->
+<div id="join-screen" class="full-center" style="display:flex">
+  <div class="card card-sm" style="text-align:center;align-items:center">
+    <div style="width:56px;height:56px;background:rgba(88,166,255,.12);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+    </div>
+    <div style="font-size:20px;font-weight:700;color:#e6edf3">Join your class</div>
+    <div style="width:100%;display:flex;flex-direction:column;gap:12px">
+      <div><label class="jlabel" style="text-align:left">Your name</label><input class="jinp" id="j-name" placeholder="e.g. Alex Chen" maxlength="40"></div>
+      <div><label class="jlabel" style="text-align:left">Class code</label><input class="jinp code-inp" id="j-code" placeholder="XXXX" maxlength="4" oninput="this.value=this.value.toUpperCase()"></div>
+      <div class="join-err" id="j-err"></div>
+      <button class="btn btn-pri" style="width:100%;padding:10px" onclick="tryJoin()">Join Class →</button>
+    </div>
+    <div class="demo-hint" style="width:100%">💡 <strong>Demo:</strong> Use code <strong style="letter-spacing:2px;font-family:monospace">XK49</strong> and any name</div>
+  </div>
+</div>
+
+<!-- LOBBY -->
+<div id="lobby-screen" class="full-center" style="display:none">
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:14px">
+      <div class="lobby-av" id="lobby-av"></div>
+      <div><div style="font-weight:700;font-size:16px" id="lobby-name"></div><div class="lobby-status"><span class="ldot"></span>Waiting for teacher…</div></div>
+    </div>
+    <div class="divider"></div>
+    <div class="info-box">
+      <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Next Assignment</div>
+      <div id="lobby-assign-name" style="font-size:14px;font-weight:600;color:#e6edf3">Waiting for teacher…</div>
+      <div id="lobby-assign-meta" style="font-size:12px;color:var(--text2);margin-top:2px"></div>
+    </div>
+    <div>
+      <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">In the room (<span id="lobby-count">0</span>)</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px" id="lobby-who"></div>
+    </div>
+    <div class="info-box" style="font-size:12px;color:var(--text2)">You'll be taken to the editor once the teacher starts.</div>
+  </div>
+</div>
+
+<!-- ENDED -->
+<div id="ended-screen" class="full-center" style="display:none">
+  <div class="card" style="text-align:center;align-items:center" id="ended-card"></div>
+</div>
+
+<!-- STUDENT EDITOR -->
+<div id="sv" style="display:none;flex:1;overflow:hidden">
+  <div class="qpanel">
+    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:5px">
+      <span class="qbadge" id="q-badge">Python · Assignment</span>
+      <span class="prog-badge" id="q-prog" style="display:none">1 of 1</span>
+    </div>
+    <h2 class="qtitle" id="q-title">Loading…</h2>
+    <p class="qdesc" id="q-desc"></p>
+    <div id="q-sig-wrap"><div class="qst">Function signature</div><div class="cblk" id="q-sig"></div></div>
+    <div><div class="qst">Test cases</div><div id="tcases" style="display:flex;flex-direction:column;gap:7px"></div></div>
+    <div id="q-hints-wrap"><div class="qst">Hints</div><div id="q-hints" style="display:flex;flex-direction:column;gap:6px"></div></div>
+    <div id="prev-subs-wrap" style="display:none;flex-direction:column;gap:6px"></div>
+  </div>
+  <div class="epanel">
+    <div class="etb">
+      <div style="display:flex;align-items:center;gap:10px">
+        <select class="lsel" id="lang-display"><option>Python 3</option><option>JavaScript</option><option>Java</option></select>
+        <span style="font-size:12px;color:var(--text2)">Write your solution below</span>
+      </div>
+      <div class="estats"><span id="lc">Lines: 1</span><span id="cc">Chars: 0</span></div>
+    </div>
+    <div class="ewrap">
+      <div class="lnums" id="lnums">1</div>
+      <textarea id="editor" spellcheck="false" placeholder="# Write your code here" onkeydown="kd(event)" oninput="inp()" onpaste="onPaste()" onscroll="syncS()"></textarea>
+    </div>
+    <div id="console-out"></div>
+    <div id="timeup-banner" style="background:rgba(248,81,73,.1);border-top:2px solid var(--red);padding:10px 18px;display:none;align-items:center;justify-content:space-between;flex-shrink:0">
+      <span style="font-weight:700;color:var(--red);font-size:13px">⏰ Time's up! Please submit your work.</span>
+      <button class="btn btn-pri btn-sm" onclick="doSubmit()">Submit Now</button>
+    </div>
+    <div class="efooter">
+      <div class="act-ind"><div class="adot" id="adot"></div><span id="astat">Activity tracked · Live</span></div>
+      <div id="s-timer" class="timer-pill ok" style="display:none"><span class="timer-dot" id="s-timer-dot" style="background:var(--green)"></span><span id="s-timer-txt">20:00</span></div>
+      <div class="pystatus" id="pystat"><span style="color:var(--text2)">Python loading…</span></div>
+      <button class="btn btn-sec" id="runbtn" onclick="runCode()" disabled>▶ Run Tests</button>
+      <button class="btn btn-pri" id="subbtn" onclick="doSubmit()">Submit</button>
+    </div>
+    <div id="fbpanel" class="hidden"></div>
+  </div>
+</div>
+
+<!-- TEACHER -->
+<div id="tv" style="display:none;flex:1;overflow:hidden;flex-direction:column">
+  <div class="ttabs">
+    <button class="ttab on" id="tab-session" onclick="teacherTab('session')">Session</button>
+    <button class="ttab" id="tab-live" onclick="teacherTab('live')">Live Class</button>
+    <button class="ttab" id="tab-assign" onclick="teacherTab('assignments')">Assignments</button>
+    <button class="ttab" id="tab-history" onclick="teacherTab('history')">History</button>
+  </div>
+
+  <!-- SESSION -->
+  <div id="tv-session" style="display:flex;flex:1;overflow:hidden">
+    <div class="sess-left"><div class="sess-left-body" id="sess-left-body"></div></div>
+    <div class="sess-right">
+      <div class="sess-roster-hdr"><span>Student Roster (<span id="roster-count">0</span>)</span><span id="roster-status" style="font-size:12px;font-weight:400;color:var(--text2)">No session active</span></div>
+      <div class="roster-list" id="roster-list"><div class="empty-roster"><div style="font-size:32px">👥</div><div style="font-weight:600;color:var(--text)">No students yet</div><div>Start a session and share the code</div></div></div>
+    </div>
+  </div>
+
+  <!-- LIVE CLASS -->
+  <div id="tv-live" style="display:none;flex:1;overflow:hidden;flex-direction:column">
+    <div class="tstats">
+      <div class="sc"><div class="sv2" id="st-tot">0</div><div class="sl">Students</div></div>
+      <div class="sc"><div class="sv2" style="color:var(--green)" id="st-act">0</div><div class="sl">Active</div></div>
+      <div class="sc"><div class="sv2" style="color:var(--yellow)" id="st-idl">0</div><div class="sl">Idle</div></div>
+      <div class="sc"><div class="sv2" style="color:var(--accent)" id="st-sub">0</div><div class="sl">Submitted</div></div>
+      <div class="sc"><div class="sv2" style="color:var(--red)" id="st-alr">0</div><div class="sl">Alerts</div></div>
+      <div id="t-timer-wrap" style="display:none;align-items:center;gap:6px">
+        <div class="timer-pill ok" id="t-timer"><span class="timer-dot" id="t-timer-dot" style="background:var(--green)"></span><span id="t-timer-txt">20:00</span></div>
+        <div class="t-ctrl"><button class="t-btn" onclick="extendTimer(5)">+5 min</button><button class="t-btn danger" onclick="stopTimer()">■ End</button></div>
+      </div>
+      <div id="push-next-wrap" style="display:none;align-items:center;gap:6px;margin-left:8px">
+        <div style="font-size:11px;color:var(--text2)" id="live-assign-label">No assignment</div>
+        <button class="btn btn-green btn-sm" id="push-next-btn" onclick="pushNext()">Push Next →</button>
+      </div>
+      <div id="no-queue-label" style="margin-left:auto;font-size:12px;color:var(--text2)">No assignment active</div>
+    </div>
+    <div class="tbody">
+      <div class="apanel">
+        <div class="ph">⚠️ Live Alerts <span class="abadge" id="abadge">0</span></div>
+        <div class="alist" id="alist"></div>
+      </div>
+      <div class="sarea">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <h3 style="font-size:14px;font-weight:600">Class Overview</h3>
+          <span style="font-size:11px;color:var(--text2)" id="lupd">Updated just now</span>
+        </div>
+        <div class="sgrid" id="sgrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ASSIGNMENTS -->
+  <div id="tv-assign" style="display:none;flex:1;overflow:hidden">
+    <div class="ab-list-panel">
+      <div class="ab-list-hdr"><span>Assignments</span><button class="btn btn-pri btn-sm" onclick="newAssignment()">+ New</button></div>
+      <div class="ab-cards" id="ab-list"></div>
+    </div>
+    <div class="ab-editor-panel" id="ab-editor"></div>
+  </div>
+
+  <!-- HISTORY -->
+  <div id="tv-history" style="display:none;flex:1;overflow:hidden">
+    <div class="hist-panel-left">
+      <div class="ph">
+        <span>Session History</span>
+        <button class="btn btn-sec btn-sm" onclick="confirmClearHistory()">Clear All</button>
+      </div>
+      <div class="hist-list" id="history-list">
+        <div style="text-align:center;padding:20px;color:var(--text2);font-size:13px"><span class="spin" style="border-color:rgba(255,255,255,.12);border-top-color:var(--accent)"></span></div>
+      </div>
+    </div>
+    <div class="hist-detail" id="history-detail">
+      <div class="hist-empty">
+        <div style="font-size:40px">📋</div>
+        <div style="font-weight:600;font-size:15px;color:var(--text)">Select a session</div>
+        <div style="font-size:13px">Click any session on the left to view the full results breakdown.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="confirm-over hidden" id="confirm-over">
+  <div class="confirm-box">
+    <div class="confirm-title" id="confirm-title"></div>
+    <div class="confirm-body" id="confirm-body"></div>
+    <div class="confirm-btns"><button class="btn btn-sec" onclick="closeConfirm()">Cancel</button><button class="btn btn-danger" id="confirm-ok">Confirm</button></div>
+  </div>
+</div>
+<div class="mover hidden" id="modal" onclick="closeM(event)"><div class="modal" id="mcontent"></div></div>
+
+<script>
+// ── CORE STATE ──
+let sName='',skReady=false,testRes={},submitted=false,loading=false,liveFB=null;
+let lastKey=Date.now(),pasteN=0,ksN=0,t0=Date.now();
+let simTick=0,liveAlerts=[],simJoinTick=0;
+let studentView='join',sessionStartTime=0,sessionSummary=null;
+let timerEnd=0,timerActive=false,timeUpFired=false;
+let queue=[],queuePos=-1,submissionHistory=[];
+
+// ── HISTORY STATE ──
+let historyCache=[];
+let selectedHistoryKey=null;
+
+const DEMO_CODE='XK49';
+let session={active:false,code:''};
+let roster=[];
+const COLORS=['#6366f1','#f59e0b','#10b981','#ec4899','#8b5cf6','#06b6d4','#f97316','#84cc16'];
+const MOCK_NAMES=['Alice Johnson','Bob Smith','Carol White','David Lee','Emma Davis','Jake Morris'];
+
+let assignments=[
+  {id:1,title:'Recursive Factorial',language:'Python',description:'Write a function factorial(n) that calculates the factorial of a non-negative integer using recursion.\n\nBy definition, 0! = 1.',functionSignature:'def factorial(n: int) -> int:',testCases:[{expr:'factorial(0)',expected:'1'},{expr:'factorial(5)',expected:'120'},{expr:'factorial(10)',expected:'3628800'}],hints:['Base case: what should factorial(0) return?','Recursive case: n × factorial(n−1)','Your function must call itself!'],difficulty:'Easy',timeLimit:20,published:false,createdAt:new Date(Date.now()-3600000)},
+  {id:2,title:'String Palindrome',language:'Python',description:'Write is_palindrome(s) that returns True if the string reads the same forwards and backwards, ignoring case and spaces.',functionSignature:'def is_palindrome(s: str) -> bool:',testCases:[{expr:'is_palindrome("racecar")',expected:'True'},{expr:'is_palindrome("hello")',expected:'False'},{expr:'is_palindrome("A man a plan a canal Panama")',expected:'True'}],hints:['Remove spaces and convert to lowercase','Compare to its reverse: s[::-1]'],difficulty:'Medium',timeLimit:25,published:false,createdAt:new Date(Date.now()-1800000)},
+  {id:3,title:'FizzBuzz',language:'Python',description:'Write fizzbuzz(n) returning a list of strings for 1 to n.\n• Multiples of 3 → "Fizz"\n• Multiples of 5 → "Buzz"\n• Both → "FizzBuzz"\n• Otherwise → number as string',functionSignature:'def fizzbuzz(n: int) -> list:',testCases:[{expr:'fizzbuzz(3)',expected:'["1", "2", "Fizz"]'},{expr:'fizzbuzz(5)[4]',expected:'"Buzz"'},{expr:'fizzbuzz(15)[14]',expected:'"FizzBuzz"'}],hints:['Use % to check divisibility','Check both 3 AND 5 before each individually'],difficulty:'Easy',timeLimit:15,published:false,createdAt:new Date(Date.now()-900000)},
+];
+let activeAssignment=null,editingDraft=null;
+
+// ── DEMO HISTORY (seed if storage empty) ──
+const DEMO_SESSIONS=[
+  {date:new Date(Date.now()-86400000*3).toISOString(),duration:1740,total:6,submitted:5,avgScore:82,passed:4,assignmentsRun:1,assignment:'Recursive Factorial',assignmentTitles:['Recursive Factorial'],results:[{name:'Alice Johnson',col:'#6366f1',score:92,sub:true},{name:'Bob Smith',col:'#f59e0b',score:45,sub:true},{name:'Carol White',col:'#10b981',score:78,sub:true},{name:'David Lee',col:'#ec4899',score:98,sub:true},{name:'Emma Davis',col:'#8b5cf6',score:null,sub:false},{name:'Jake Morris',col:'#06b6d4',score:91,sub:true}]},
+  {date:new Date(Date.now()-86400000*7).toISOString(),duration:2580,total:5,submitted:5,avgScore:74,passed:3,assignmentsRun:2,assignment:'String Palindrome',assignmentTitles:['Recursive Factorial','String Palindrome'],results:[{name:'Alice Johnson',col:'#6366f1',score:88,sub:true},{name:'Bob Smith',col:'#f59e0b',score:55,sub:true},{name:'Carol White',col:'#10b981',score:70,sub:true},{name:'David Lee',col:'#ec4899',score:95,sub:true},{name:'Emma Davis',col:'#8b5cf6',score:62,sub:true}]},
+  {date:new Date(Date.now()-86400000*14).toISOString(),duration:900,total:4,submitted:3,avgScore:68,passed:2,assignmentsRun:1,assignment:'FizzBuzz',assignmentTitles:['FizzBuzz'],results:[{name:'Alice Johnson',col:'#6366f1',score:85,sub:true},{name:'Bob Smith',col:'#f59e0b',score:null,sub:false},{name:'Carol White',col:'#10b981',score:60,sub:true},{name:'David Lee',col:'#ec4899',score:58,sub:true}]},
+];
+
+// ── SESSION HISTORY ──
+async function saveSessionToHistory(){
+  if(!sessionSummary)return;
+  const key='history:'+Date.now();
+  const data={
+    date:new Date().toISOString(),
+    ...sessionSummary,
+    assignmentTitles:queue.map(id=>assignments.find(a=>a.id===id)?.title).filter(Boolean)
+  };
+  try{await window.storage.set(key,JSON.stringify(data));showToast('Session saved to history ✓')}
+  catch(e){console.error('Could not save history:',e)}
+}
+
+async function loadAndRenderHistory(){
+  const listEl=document.getElementById('history-list');if(!listEl)return;
+  listEl.innerHTML='<div style="text-align:center;padding:20px;color:var(--text2);font-size:13px"><span class="spin" style="border-color:rgba(255,255,255,.12);border-top-color:var(--accent)"></span> Loading…</div>';
+  historyCache=[];
+  try{
+    const result=await window.storage.list('history:');
+    if(result&&result.keys&&result.keys.length){
+      for(const key of result.keys.sort().reverse()){
+        try{const r=await window.storage.get(key);if(r)historyCache.push({key,...JSON.parse(r.value)})}catch(e){}
+      }
+    }
+    // Seed demo data if storage is empty
+    if(!historyCache.length){
+      for(let i=0;i<DEMO_SESSIONS.length;i++){
+        const key='history:demo'+(i+1);
+        try{await window.storage.set(key,JSON.stringify(DEMO_SESSIONS[i]));historyCache.push({key,...DEMO_SESSIONS[i]})}catch(e){}
+      }
+    }
+  }catch(e){
+    // Storage unavailable — use demo data
+    historyCache=DEMO_SESSIONS.map((s,i)=>({key:'demo'+i,...s}));
+  }
+  renderHistoryList();
+}
+
+function renderHistoryList(){
+  const el=document.getElementById('history-list');if(!el)return;
+  if(!historyCache.length){
+    el.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:30px 16px;color:var(--text2);text-align:center"><div style="font-size:32px">📭</div><div style="font-weight:600;color:var(--text)">No sessions yet</div><div style="font-size:13px">End a session to save results here.</div></div>`;
+    return;
+  }
+  el.innerHTML=historyCache.map((s,i)=>{
+    const d=new Date(s.date);
+    const dateStr=d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+    const timeStr=d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    const dur=Math.round(s.duration/60);
+    const titles=s.assignmentTitles||[s.assignment||'Session'];
+    const label=titles.length>1?titles.length+' assignments':esc(titles[0]||'Session');
+    return`<div class="hist-card ${selectedHistoryKey===s.key?'sel':''}" onclick="openHistorySession(${i})">
+      <div class="hist-date">${dateStr} · ${timeStr}</div>
+      <div class="hist-title">${label}</div>
+      <div class="hist-stats">
+        <span class="hist-stat"><strong>${s.total}</strong> students</span>
+        <span class="hist-stat"><strong>${s.submitted}</strong> submitted</span>
+        <span class="hist-stat"><strong>${s.avgScore!=null?s.avgScore+'/100':'—'}</strong> avg</span>
+        <span class="hist-stat"><strong>${dur}m</strong></span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openHistorySession(idx){
+  const s=historyCache[idx];if(!s)return;
+  selectedHistoryKey=s.key;
+  renderHistoryList();
+  const el=document.getElementById('history-detail');if(!el)return;
+  const d=new Date(s.date);
+  const dateStr=d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const timeStr=d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  const dur=s.duration,dm=Math.floor(dur/60),ds=dur%60;
+  const titles=s.assignmentTitles||[s.assignment||'Unknown'];
+  const scored=s.results.filter(r=>r.score!=null);
+  el.innerHTML=`
+  <div style="max-width:700px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:#e6edf3;margin-bottom:4px">${esc(titles.join(' → '))}</div>
+        <div style="font-size:13px;color:var(--text2)">${dateStr} · ${timeStr} · ${dm}m ${ds}s</div>
+      </div>
+      <div style="display:flex;gap:7px">
+        <button class="btn btn-sec btn-sm" onclick="exportHistorySession(${idx})">⬇ Export CSV</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteHistorySession('${s.key}')">Delete</button>
+      </div>
+    </div>
+    <div class="stat-grid" style="margin-bottom:20px">
+      <div class="sc" style="padding:10px;text-align:center"><div class="sv2" style="font-size:22px">${s.total}</div><div class="sl">Students</div></div>
+      <div class="sc" style="padding:10px;text-align:center"><div class="sv2" style="font-size:22px">${s.submitted}</div><div class="sl">Submitted</div></div>
+      <div class="sc" style="padding:10px;text-align:center"><div class="sv2" style="font-size:22px;color:var(--green)">${s.avgScore!=null?s.avgScore:'—'}</div><div class="sl">Avg Score</div></div>
+      <div class="sc" style="padding:10px;text-align:center"><div class="sv2" style="font-size:22px;color:var(--accent)">${s.passed}</div><div class="sl">Passed</div></div>
+    </div>
+    ${titles.length>1?`<div style="margin-bottom:16px"><div class="qst" style="margin-bottom:8px">Assignments Covered</div><div style="display:flex;flex-wrap:wrap;gap:6px">${titles.map((t,i)=>`<span style="background:var(--bg3);border:1px solid var(--bd);border-radius:20px;padding:3px 10px;font-size:12px;">${i+1}. ${esc(t)}</span>`).join('')}</div></div>`:''}
+    <div class="qst" style="margin-bottom:10px">Student Results</div>
+    <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:8px;overflow:hidden">
+      <div style="display:grid;grid-template-columns:1fr 140px 100px;padding:8px 14px;border-bottom:1px solid var(--bd);font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">
+        <span>Student</span><span>Score</span><span>Status</span>
+      </div>
+      ${s.results.map(r=>{
+        const ini=r.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+        const sc=r.score!=null?r.score:null;
+        const pct=sc!=null?sc:0;
+        const col=sc==null?'var(--text2)':sc>=60?'var(--green)':'var(--red)';
+        return`<div style="display:grid;grid-template-columns:1fr 140px 100px;padding:10px 14px;border-bottom:1px solid var(--bd);align-items:center">
+          <div style="display:flex;align-items:center;gap:9px">
+            <div class="av" style="background:${r.col}22;color:${r.col};width:30px;height:30px;font-size:11px;flex-shrink:0">${ini}</div>
+            <span style="font-size:13px;font-weight:500">${esc(r.name)}</span>
+          </div>
+          <div>
+            <div style="font-weight:700;color:${col};font-size:14px;margin-bottom:3px">${sc!=null?sc+'/100':'Not submitted'}</div>
+            ${sc!=null?`<div class="score-bar"><div class="score-fill" style="width:${pct}%;background:${col}"></div></div>`:''}
+          </div>
+          <span class="roster-status ${r.sub?'rs-joined':'rs-waiting'}">${r.sub?'✓ Submitted':'✗ No submit'}</span>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+async function deleteHistorySession(key){
+  document.getElementById('confirm-title').textContent='Delete this session?';
+  document.getElementById('confirm-body').textContent='This session record will be permanently removed from history.';
+  document.getElementById('confirm-ok').textContent='Delete';
+  document.getElementById('confirm-ok').onclick=async()=>{
+    closeConfirm();
+    try{await window.storage.delete(key)}catch(e){}
+    historyCache=historyCache.filter(s=>s.key!==key);
+    if(selectedHistoryKey===key){selectedHistoryKey=null;document.getElementById('history-detail').innerHTML='<div class="hist-empty"><div style="font-size:40px">📋</div><div style="font-weight:600;font-size:15px;color:var(--text)">Select a session</div></div>'}
+    renderHistoryList();showToast('Session deleted');
+  };
+  document.getElementById('confirm-over').classList.remove('hidden');
+}
+
+function confirmClearHistory(){
+  if(!historyCache.length){showToast('No history to clear.');return}
+  document.getElementById('confirm-title').textContent='Clear all history?';
+  document.getElementById('confirm-body').textContent='All saved session records will be permanently deleted.';
+  document.getElementById('confirm-ok').textContent='Clear All';
+  document.getElementById('confirm-ok').onclick=async()=>{
+    closeConfirm();
+    for(const s of historyCache){try{await window.storage.delete(s.key)}catch(e){}}
+    historyCache=[];selectedHistoryKey=null;
+    renderHistoryList();
+    document.getElementById('history-detail').innerHTML='<div class="hist-empty"><div style="font-size:40px">📋</div><div style="font-weight:600;font-size:15px;color:var(--text)">No sessions yet</div><div style="font-size:13px">End a session to save results here.</div></div>';
+    showToast('History cleared');
+  };
+  document.getElementById('confirm-over').classList.remove('hidden');
+}
+
+function exportHistorySession(idx){
+  const s=historyCache[idx];if(!s)return;
+  const headers=['Name','Score','Passed','Submitted'];
+  const rows=s.results.map(r=>[r.name,r.score!=null?r.score:'—',r.score!=null?(r.score>=60?'Yes':'No'):'—',r.sub?'Yes':'No']);
+  const titles=(s.assignmentTitles||[s.assignment||'Session']).join(' → ');
+  const meta=[['CodeClass Session Export'],[`Assignments: ${titles}`],[`Date: ${new Date(s.date).toLocaleString()}`],[`Duration: ${Math.round(s.duration/60)}m`],[`Students: ${s.total}`],[`Submitted: ${s.submitted}`],[`Average Score: ${s.avgScore!=null?s.avgScore:'—'}`],['']];
+  const toRow=r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',');
+  const csv=[...meta.map(toRow),toRow(headers),...rows.map(toRow)].join('\n');
+  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  const link=document.createElement('a');link.href=url;link.download='codeclass-history-'+new Date(s.date).toISOString().slice(0,10)+'.csv';
+  link.click();URL.revokeObjectURL(url);showToast('Exported ✓');
+}
+
+// ── QUEUE MANAGEMENT ──
+function addToQueue(id){if(queue.includes(id)){showToast('Already in queue');return}queue.push(id);showToast('Added to queue ✓');renderABList();renderSession()}
+function removeFromQueue(idx){queue.splice(idx,1);if(queuePos>=queue.length)queuePos=queue.length-1;renderSession();renderABList()}
+function moveInQueue(idx,dir){const ni=idx+dir;if(ni<0||ni>=queue.length)return;[queue[idx],queue[ni]]=[queue[ni],queue[idx]];renderSession()}
+function startQueue(){if(!queue.length){showToast('Add assignments to the queue first.');return}queuePos=0;activateQueuePos(0);teacherTab('live')}
+function pushNext(){if(queuePos<0){showToast('Start the queue first.');return}if(queuePos>=queue.length-1){showToast('No more assignments!');return}queuePos++;activateQueuePos(queuePos)}
+function activateQueuePos(pos){
+  const id=queue[pos];const a=assignments.find(a=>a.id===id);if(!a)return;
+  if(submitted&&liveFB)submissionHistory.push({title:activeAssignment?.title,score:liveFB.score,summary:liveFB.summary,code:document.getElementById('editor').value});
+  assignments.forEach(a=>a.published=false);a.published=true;activeAssignment=a;
+  resetStudentEditor();
+  if(studentView==='lobby')goToEditor();else if(studentView==='editor')updateStudentView();
+  updateLobby();startTimer(a.timeLimit);renderSession();renderABList();renderT();
+  showToast(`▶ Assignment ${pos+1} of ${queue.length}: ${a.title}`);
+}
+function resetStudentEditor(){
+  submitted=false;loading=false;liveFB=null;lastKey=Date.now();pasteN=0;ksN=0;t0=Date.now();testRes={};
+  document.getElementById('editor').value='';document.getElementById('fbpanel').classList.add('hidden');document.getElementById('fbpanel').innerHTML='';
+  document.getElementById('console-out').style.display='none';document.getElementById('timeup-banner').style.display='none';
+  const btn=document.getElementById('subbtn');if(btn){btn.disabled=false;btn.innerHTML='Submit'}
+  updLN();renderPrevSubs();
+}
+function renderPrevSubs(){
+  const wrap=document.getElementById('prev-subs-wrap');if(!wrap)return;
+  if(!submissionHistory.length){wrap.style.display='none';return}
+  wrap.style.display='flex';
+  wrap.innerHTML=`<div class="qst">Previous Results</div>`+submissionHistory.map(s=>`<div class="prev-sub" onclick="this.querySelector('.prev-sub-body').style.display=this.querySelector('.prev-sub-body').style.display==='block'?'none':'block'"><div class="prev-sub-hdr"><span>📋 ${esc(s.title)}</span><span style="color:${s.score>=60?'var(--green)':'var(--red)'}">${s.score}/100 ${s.score>=60?'✓':'✗'}</span></div><div class="prev-sub-body">${esc(s.summary)}</div></div>`).join('');
+}
+
+// ── TIMER ──
+function startTimer(m){timerEnd=Date.now()+m*60000;timerActive=true;timeUpFired=false;document.getElementById('s-timer').style.display='flex';document.getElementById('t-timer-wrap').style.display='flex';updateTimerDisplay()}
+function stopTimer(){timerActive=false;document.getElementById('s-timer').style.display='none';document.getElementById('t-timer-wrap').style.display='none';document.getElementById('timeup-banner').style.display='none'}
+function extendTimer(m){if(!timerActive)return;timerEnd+=m*60000;timeUpFired=false;document.getElementById('timeup-banner').style.display='none';['s-timer','t-timer'].forEach(id=>{const el=document.getElementById(id);if(el)el.className='timer-pill ok'});showToast('+'+m+' min added ✓');updateTimerDisplay()}
+function getSecsLeft(){return Math.max(0,Math.round((timerEnd-Date.now())/1000))}
+function fmtTimer(s){const m=Math.floor(s/60),sc=s%60;return m+':'+(sc<10?'0':'')+sc}
+function updateTimerDisplay(){
+  if(!timerActive&&!timeUpFired)return;
+  const s=getSecsLeft();const lvl=s===0?'up':s<=60?'urgent':s<=300?'warn':'ok';
+  const dc=lvl==='ok'?'var(--green)':lvl==='warn'?'var(--yellow)':'var(--red)';
+  const txt=s===0?'Time\'s up!':fmtTimer(s);
+  const sp=document.getElementById('s-timer');if(sp){sp.className='timer-pill '+lvl;document.getElementById('s-timer-txt').textContent=txt;document.getElementById('s-timer-dot').style.background=dc}
+  const tp=document.getElementById('t-timer');if(tp){tp.className='timer-pill '+lvl;document.getElementById('t-timer-txt').textContent=txt;document.getElementById('t-timer-dot').style.background=dc}
+  if(s===0&&!timeUpFired){timeUpFired=true;timerActive=false;if(studentView==='editor'&&!submitted)document.getElementById('timeup-banner').style.display='flex';liveAlerts.unshift({type:'idle',student:'System',msg:'Timer ended',time:new Date()})}
+}
+function checkTimer(){if(timerActive||timeUpFired)updateTimerDisplay()}
+
+// ── JOIN ──
+function tryJoin(){
+  const name=document.getElementById('j-name').value.trim();const code=document.getElementById('j-code').value.trim().toUpperCase();const err=document.getElementById('j-err');
+  if(!name){showErr('Please enter your name.');return}if(code.length!==4){showErr('Code must be 4 characters.');return}if(code!==DEMO_CODE){showErr('Invalid code. Try XK49 for the demo.');return}
+  err.style.display='none';sName=name;roster.push({id:'me',name,col:COLORS[roster.length%COLORS.length],joinedAt:new Date(),isLive:true});
+  liveAlerts.unshift({type:'join',student:name,msg:'Joined the session',time:new Date()});showStudentLobby();
+}
+function showErr(m){const e=document.getElementById('j-err');e.textContent=m;e.style.display='block'}
+function showStudentLobby(){studentView='lobby';showScreen('lobby-screen');const myRec=roster.find(r=>r.isLive);const ini=sName.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();document.getElementById('lobby-av').textContent=ini;document.getElementById('lobby-av').style.color=myRec?.col||'var(--accent)';document.getElementById('lobby-name').textContent=sName;setNavUser();updateLobby();if(activeAssignment)goToEditor()}
+function updateLobby(){const who=document.getElementById('lobby-who');if(!who)return;who.innerHTML=roster.map(r=>`<div class="who-chip"><span style="width:8px;height:8px;border-radius:50%;background:${r.col};display:inline-block"></span>${esc(r.name)}</div>`).join('');document.getElementById('lobby-count').textContent=roster.length;const nextA=queue.length?assignments.find(a=>a.id===queue[Math.max(0,queuePos)]):(activeAssignment||null);document.getElementById('lobby-assign-name').textContent=nextA?nextA.title:'Waiting for teacher…';document.getElementById('lobby-assign-meta').textContent=nextA?nextA.language+' · '+nextA.difficulty+' · '+nextA.timeLimit+' min':''}
+function goToEditor(){studentView='editor';showScreen('sv');updateStudentView()}
+function showScreen(id){['join-screen','lobby-screen','ended-screen','sv'].forEach(s=>document.getElementById(s).style.display='none');document.getElementById(id).style.display='flex'}
+function setNavUser(){const el=document.getElementById('nav-user');el.style.display=sName?'block':'none';el.innerHTML=sName?`<span style="color:var(--text2)">Signed in as</span> <strong>${esc(sName)}</strong>`:''}
+
+// ── STUDENT END ──
+function renderEndedScreen(){
+  const el=document.getElementById('ended-card');if(!el)return;
+  const my=sessionSummary?.results?.find(r=>r.isLive);const score=my?.score??null;const avg=sessionSummary?.avgScore;const passed=score!=null&&score>=60;
+  const allScores=[...submissionHistory.map(s=>s.score),score!=null?score:null].filter(s=>s!=null);
+  el.innerHTML=`<div style="font-size:48px">${allScores.length?(allScores[allScores.length-1]>=60?'🎉':'💪'):'📚'}</div>
+  <div style="font-size:20px;font-weight:700;color:#e6edf3">Session Complete!</div>
+  <div style="font-size:13px;color:var(--text2)">Your teacher has ended the session.</div>
+  ${queue.length>1?`<div class="info-box" style="width:100%;text-align:left"><div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Your Results</div>${[...submissionHistory,score!=null?{title:activeAssignment?.title,score,summary:liveFB?.summary}:null].filter(Boolean).map(s=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--bd)"><span style="font-size:13px">${esc(s.title)}</span><span style="font-weight:700;color:${s.score>=60?'var(--green)':'var(--red)'}">${s.score}/100</span></div>`).join('')}</div>`:`${score!=null?`<div class="info-box" style="width:100%"><div style="font-size:48px;font-weight:900;color:${passed?'var(--green)':'var(--red)'}">${score}<span style="font-size:16px;font-weight:400;color:var(--text2)">/100</span></div><div style="font-size:13px;margin-top:5px;color:${passed?'var(--green)':'var(--red)'}">${passed?'✓ Passed':'✗ Keep practising!'}</div></div>`:'<div class="info-box" style="font-size:13px;color:var(--text2);width:100%">You did not submit before the session ended.</div>'}`}
+  ${avg!=null?`<div style="font-size:13px;color:var(--text2)">Class average: <strong style="color:var(--text)">${avg}/100</strong></div>`:''}
+  <button class="btn btn-pri" style="width:100%" onclick="resetToJoin()">← Join another class</button>`;
+}
+function resetToJoin(){
+  studentView='join';sName='';submitted=false;loading=false;liveFB=null;lastKey=Date.now();pasteN=0;ksN=0;t0=Date.now();testRes={};submissionHistory=[];
+  document.getElementById('editor').value='';document.getElementById('fbpanel').classList.add('hidden');document.getElementById('timeup-banner').style.display='none';
+  document.getElementById('j-name').value='';document.getElementById('j-code').value='';document.getElementById('j-err').style.display='none';document.getElementById('nav-user').style.display='none';document.getElementById('s-timer').style.display='none';
+  showScreen('join-screen');updLN();
+}
+
+// ── SESSION ──
+function renderSession(){
+  const body=document.getElementById('sess-left-body');if(!body)return;
+  if(sessionSummary&&!session.active){renderSessionSummary();return}
+  if(!session.active){body.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;gap:14px;padding:24px;text-align:center;color:var(--text2)"><div style="font-size:48px">🔒</div><div style="font-weight:700;font-size:15px;color:var(--text)">No active session</div><div style="font-size:13px;line-height:1.6">Start a session to generate a join code.</div><button class="btn btn-pri" style="width:100%" onclick="startSession()">▶ Start Session</button></div>`;document.getElementById('roster-status').textContent='No session active';renderRoster();return}
+  const dur=Math.round((Date.now()-sessionStartTime)/1000),m=Math.floor(dur/60),s=dur%60;
+  const qHTML=queue.length?queue.map((id,i)=>{const a=assignments.find(a=>a.id===id);if(!a)return'';const status=i<queuePos?'done':i===queuePos?'live':'upcoming';const diffCls=a.difficulty==='Easy'?'p-easy':a.difficulty==='Hard'?'p-hard':'p-med';return`<div class="q-item ${status}"><div class="q-num">${status==='done'?'✓':i+1}</div><div class="q-title">${esc(a.title)}</div><span class="q-diff pill ${diffCls}">${a.difficulty}</span>${queuePos<0||status==='upcoming'?`<div class="q-acts"><button class="qbtn" onclick="moveInQueue(${i},-1)" ${i===0?'disabled':''}>↑</button><button class="qbtn" onclick="moveInQueue(${i},1)" ${i===queue.length-1?'disabled':''}>↓</button><button class="qbtn rm" onclick="removeFromQueue(${i})">✕</button></div>`:`<div style="font-size:10px;color:${status==='done'?'var(--green)':'var(--accent)'};">${status==='done'?'Done':'● Live'}</div>`}</div>`}).join(''):`<div class="q-empty">No assignments queued.<br>Go to <strong>Assignments</strong> and click <strong>+ Queue</strong>.</div>`;
+  const canStart=queuePos<0&&queue.length>0,canNext=queuePos>=0&&queuePos<queue.length-1,isDone=queuePos>=0&&queuePos>=queue.length-1;
+  body.innerHTML=`<div><div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Share this code</div><div class="code-display"><div class="code-big">${session.code}</div><div class="code-lbl">Class join code · ${m}m ${s}s</div><button class="copy-btn" onclick="copyCode()">Copy code</button></div></div>
+  <div class="q-section"><div class="q-hdr"><span>Session Queue (${queue.length})</span><button class="btn btn-sec btn-sm" onclick="teacherTab('assignments')" style="font-size:10px;padding:2px 7px">+ Add</button></div>${qHTML}${canStart?`<button class="btn btn-green" style="width:100%;margin-top:8px" onclick="startQueue()">▶ Start Assignment 1</button>`:''}${canNext?`<button class="btn btn-green" style="width:100%;margin-top:8px" onclick="pushNext()">Push Next: ${esc(assignments.find(a=>a.id===queue[queuePos+1])?.title||'')} →</button>`:''}${isDone?`<div style="text-align:center;padding:8px;font-size:12px;color:var(--green);font-weight:600">✓ All assignments complete</div>`:''}</div>
+  <div class="divider"></div><button class="btn btn-danger" style="width:100%" onclick="confirmEndSession()">■ End Session</button>`;
+  document.getElementById('roster-status').innerHTML=`<span class="badge-dot"></span>Session live`;renderRoster();
+}
+
+function renderSessionSummary(){
+  const s=sessionSummary;if(!s)return;const body=document.getElementById('sess-left-body');if(!body)return;
+  const dur=s.duration,m=Math.floor(dur/60),sec=dur%60;
+  body.innerHTML=`<div style="text-align:center;padding:8px 0"><div style="font-size:36px">📊</div><div style="font-weight:700;font-size:16px;color:#e6edf3;margin-top:6px">Session Summary</div><div style="font-size:12px;color:var(--text2);margin-top:3px">Duration: ${m}m ${sec}s · ${s.assignmentsRun} assignment${s.assignmentsRun!==1?'s':''}</div></div>
+  <div class="stat-grid"><div class="sc" style="padding:10px;text-align:center"><div class="sv2" style="font-size:22px">${s.total}</div><div class="sl">Students</div></div><div class="sc" style="padding:10px;text-align:center"><div class="sv2" style="font-size:22px">${s.submitted}</div><div class="sl">Submitted</div></div><div class="sc" style="padding:10px;text-align:center"><div class="sv2" style="font-size:22px;color:var(--green)">${s.avgScore??'—'}</div><div class="sl">Avg Score</div></div><div class="sc" style="padding:10px;text-align:center"><div class="sv2" style="font-size:22px;color:var(--accent)">${s.passed}</div><div class="sl">Passed</div></div></div>
+  ${s.assignment?`<div class="info-box"><div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Last Assignment</div><div style="font-size:13px;font-weight:600">${esc(s.assignment)}</div></div>`:''}
+  <div style="display:flex;gap:8px"><button class="btn btn-pri" style="flex:1" onclick="startSession()">▶ New Session</button><button class="btn btn-sec" onclick="exportResults()">⬇ Export</button></div>
+  <button class="btn btn-sec" style="width:100%" onclick="teacherTab('history')">📋 View in History</button>`;
+  document.getElementById('roster-count').textContent=s.total;document.getElementById('roster-status').textContent='Session ended';
+  document.getElementById('roster-list').innerHTML=`<div style="padding:8px 12px;border-bottom:1px solid var(--bd);display:grid;grid-template-columns:1fr auto auto;gap:10px;font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px"><span>Student</span><span>Score</span><span>Status</span></div>${s.results.map(r=>{const ini=r.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();const sc=r.score!=null?(r.score>=60?'var(--green)':'var(--red)'):'var(--text2)';return`<div class="roster-row" style="display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center"><div style="display:flex;align-items:center;gap:8px;min-width:0"><div class="roster-av" style="background:${r.col}22;color:${r.col};width:30px;height:30px;font-size:11px;flex-shrink:0">${ini}</div><div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.name)}${r.isLive?'<span class="livepill">YOU</span>':''}</div></div><div style="font-weight:700;color:${sc};font-size:14px">${r.score!=null?r.score+'/100':'—'}</div><span class="roster-status ${r.sub?'rs-joined':'rs-waiting'}">${r.sub?'✓ Submitted':'Not submitted'}</span></div>`}).join('')}`;
+}
+
+function startSession(){sessionSummary=null;session={active:true,code:DEMO_CODE};sessionStartTime=Date.now();queue=[];queuePos=-1;submissionHistory=[];roster=roster.filter(r=>r.isLive);liveAlerts=liveAlerts.filter(a=>a.type==='join');simJoinTick=0;stopTimer();activeAssignment=null;queue=assignments.slice(0,3).map(a=>a.id);renderSession();showToast('Session started — code: '+DEMO_CODE+' · '+queue.length+' assignments queued')}
+
+function confirmEndSession(){document.getElementById('confirm-title').textContent='End session?';document.getElementById('confirm-body').textContent='All students will see a summary. Results will be saved to history.';document.getElementById('confirm-ok').textContent='End Session';document.getElementById('confirm-ok').onclick=endSession;document.getElementById('confirm-over').classList.remove('hidden')}
+function closeConfirm(){document.getElementById('confirm-over').classList.add('hidden')}
+
+async function endSession(){
+  closeConfirm();stopTimer();
+  const ss=allS();const scored=ss.filter(s=>s.score!=null);
+  sessionSummary={duration:Math.round((Date.now()-sessionStartTime)/1000),total:ss.length,submitted:ss.filter(s=>s.sub).length,avgScore:scored.length?Math.round(scored.reduce((a,s)=>a+s.score,0)/scored.length):null,passed:scored.filter(s=>s.score>=60).length,assignmentsRun:Math.max(0,queuePos+1),assignment:activeAssignment?.title||null,assignmentTitles:queue.map(id=>assignments.find(a=>a.id===id)?.title).filter(Boolean),results:ss.map(s=>({name:s.name,col:s.col,score:s.score??null,sub:s.sub,tr:s.tr,isLive:s.isLive||false}))};
+  session={active:false,code:''};
+  await saveSessionToHistory();
+  if(studentView==='lobby'||studentView==='editor'){studentView='ended';renderEndedScreen();showScreen('ended-screen')}
+  renderSessionSummary();
+}
+
+function copyCode(){navigator.clipboard?.writeText(session.code).catch(()=>{});showToast('Copied: '+session.code)}
+function kickStudent(id){roster=roster.filter(r=>r.id!==id);renderRoster();renderT()}
+function renderRoster(){const el=document.getElementById('roster-list');if(!el)return;document.getElementById('roster-count').textContent=roster.length;if(!roster.length){el.innerHTML=`<div class="empty-roster"><div style="font-size:32px">👥</div><div style="font-weight:600;color:var(--text)">No students yet</div><div>Share code <strong style="font-family:monospace;letter-spacing:2px">${session.code||'—'}</strong></div></div>`;return}el.innerHTML=roster.map(r=>`<div class="roster-row"><div class="roster-av" style="background:${r.col}22;color:${r.col}">${r.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase()}</div><div class="roster-name">${esc(r.name)}${r.isLive?'<span class="livepill">YOU</span>':''}</div><div class="roster-time">${fmtTime(r.joinedAt)}</div><span class="roster-status rs-joined">✓ Joined</span>${!r.isLive?`<button class="kick-btn" onclick="kickStudent('${r.id}')">Kick</button>`:''}</div>`).join('')}
+
+// ── SKULPT ──
+function skRead(x){if(Sk.builtinFiles===undefined||Sk.builtinFiles['files'][x]===undefined)throw"File not found: '"+x+"'";return Sk.builtinFiles['files'][x]}
+function pyToJs(p){if(p===undefined||p===null)return null;try{return Sk.ffi.remapToJs(p)}catch(e){return typeof p.v!=='undefined'?p.v:null}}
+function initSkulpt(){if(typeof Sk!=='undefined'){skReady=true;document.getElementById('runbtn').disabled=false;document.getElementById('pystat').innerHTML='<span style="color:var(--green)">● Python ready</span>'}else document.getElementById('pystat').innerHTML='<span style="color:var(--red)">⚠ Python unavailable</span>';renderTCs()}
+async function runSk(code,silent){let out='';Sk.configure({output:silent?()=>{}:t=>{out+=t},read:skRead,execLimit:30000});const mod=await Sk.misceval.asyncToPromise(()=>Sk.importMainWithBody('<stdin>',false,code,true));return{mod,out}}
+
+// ── TEST CASES ──
+function getTCS(){if(!activeAssignment)return[];return activeAssignment.testCases.filter(tc=>tc.expr.trim()).map((tc,i)=>({id:'t'+(i+1),expr:tc.expr,expected:parseExp(tc.expected),label:'Test '+(i+1)}))}
+function parseExp(v){const s=String(v).trim();if(s==='True')return true;if(s==='False')return false;const n=Number(s);return isNaN(n)?s:n}
+function errMsg(e){if(typeof e==='string')return e;if(e?.args?.v?.[0])return String(e.tp$name)+': '+String(e.args.v[0].v||e.args.v[0]);return e?e.toString():'Error'}
+function renderTCs(state){const tcs=getTCS();const el=document.getElementById('tcases');if(!el)return;if(!tcs.length){el.innerHTML='';return}el.innerHTML=tcs.map(tc=>{const r=testRes[tc.id];let res='',border='var(--bd)',lc='var(--text2)';if(state==='running')res=`<div style="font-size:11px;color:var(--text2)">Running…</div>`;else if(r){if(r.passed){border='var(--green)';lc='var(--green)';res=`<div style="font-size:11px;color:var(--green);font-weight:600">✓ Passed · returned ${esc(String(r.got))}</div>`}else if(r.error){border='var(--red)';lc='var(--red)';res=`<div style="font-size:11px;color:var(--red)">✗ ${esc(r.error.split('\n').filter(Boolean).pop()||r.error)}</div>`}else{border='var(--red)';lc='var(--red)';res=`<div style="font-size:11px;color:var(--red);font-weight:600">✗ Expected ${tc.expected}, got ${esc(String(r.got))}</div>`}}else if(skReady)res=`<div style="font-size:11px;color:var(--text2);margin-top:2px">Click ▶ Run Tests to check</div>`;return`<div class="tc" style="border-left-color:${border}"><span class="tc-lbl" style="color:${lc}">${tc.label}</span><div class="tc-io">${esc(tc.expr)} → <strong>${tc.expected}</strong></div>${res}</div>`}).join('')}
+async function runCode(){if(!skReady||!activeAssignment)return;const tcs=getTCS();if(!tcs.length)return;const code=document.getElementById('editor').value.trim();if(!code){showToast('Write some code first!');return}const btn=document.getElementById('runbtn');btn.disabled=true;btn.textContent='Running…';testRes={};renderTCs('running');let stdout='';try{const r=await runSk(code,false);stdout=r.out}catch(e){const msg=errMsg(e);for(const tc of tcs)testRes[tc.id]={passed:false,got:null,error:msg};renderTCs();showConsole(stdout);btn.disabled=false;btn.textContent='▶ Run Tests';return}for(const tc of tcs){try{const{mod}=await runSk(`${code}\n_result=${tc.expr}`,true);const v=pyToJs(mod.$d['_result']);testRes[tc.id]={passed:v===tc.expected,got:v,error:null}}catch(e){testRes[tc.id]={passed:false,got:null,error:errMsg(e)}}}renderTCs();showConsole(stdout);btn.disabled=false;btn.textContent='▶ Run Tests'}
+function showConsole(txt){const co=document.getElementById('console-out');if(txt?.trim()){co.style.display='block';co.textContent='▸ '+txt.trim()}else co.style.display='none'}
+async function doSubmit(){const code=document.getElementById('editor').value.trim();if(!code){showToast('Write some code first!');return}if(loading)return;loading=true;submitted=true;document.getElementById('timeup-banner').style.display='none';const btn=document.getElementById('subbtn');btn.disabled=true;btn.innerHTML='<span class="spin"></span>Marking…';if(skReady&&!Object.keys(testRes).length)await runCode();const fp=document.getElementById('fbpanel');fp.classList.remove('hidden');fp.innerHTML='<div style="display:flex;align-items:center;gap:8px;color:var(--text2);font-size:13px"><span class="spin" style="border-color:rgba(255,255,255,.2);border-top-color:var(--accent)"></span>AI reviewing…</div>';try{const r=await callAI(code);liveFB=r;showFB(r);liveAlerts.unshift({type:'sub',student:sName,msg:'Submitted · Score: '+r.score+'/100',time:new Date()})}catch(e){fp.innerHTML='<div style="color:var(--red)">⚠️ Could not reach AI. Try again.</div>';btn.disabled=false;btn.innerHTML='Submit';loading=false;submitted=false}}
+async function callAI(code){const tcs=getTCS();const q=activeAssignment?activeAssignment.title+': '+activeAssignment.description:'Solve the task.';const tsummary=tcs.length?tcs.map(tc=>{const r=testRes[tc.id];if(!r)return tc.expr+': not run';if(r.passed)return tc.expr+': PASSED ('+r.got+')';if(r.error)return tc.expr+': ERROR — '+r.error.split('\n').filter(Boolean).pop();return tc.expr+': FAILED (expected '+tc.expected+', got '+r.got+')'}).join('\n'):'Tests not run.';const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:`You are a code marker.\n\nQUESTION: ${q}\n\nCODE:\n${code}\n\nRESULTS:\n${tsummary}\n\nReturn ONLY valid JSON:\n{"score":<0-100>,"passed":<bool>,"summary":"<1-2 sentences>","strengths":["<s1>","<s2>"],"improvements":["<i1>","<i2>"],"tip":"<tip>"}`}]})});const d=await res.json();return JSON.parse(d.content.map(b=>b.text||'').join('').replace(/```json|```/g,'').trim())}
+function showFB(r){document.getElementById('fbpanel').innerHTML=`<div class="fbhdr"><div class="scircle ${r.passed?'sp':'sf'}">${r.score}</div><div><div style="font-weight:700;font-size:15px;color:${r.passed?'var(--green)':'var(--red)'}">${r.passed?'✓ Passed':'✗ Needs Work'}</div><div style="font-size:12px;color:var(--text2);margin-top:3px">${r.summary}</div></div></div><div class="fbgrid"><div class="fbsec str"><h4>✓ Strengths</h4><ul class="fblist">${(r.strengths||[]).map(s=>`<li>${s}</li>`).join('')}</ul></div><div class="fbsec imp"><h4>↑ Improvements</h4><ul class="fblist">${(r.improvements||[]).map(s=>`<li>${s}</li>`).join('')}</ul></div></div>${r.tip?`<div style="background:rgba(88,166,255,.07);border:1px solid rgba(88,166,255,.18);border-radius:6px;padding:10px;font-size:12px;color:var(--text2);margin-top:10px">💡 <strong style="color:var(--accent)">Tip:</strong> ${r.tip}</div>`:''}`;document.getElementById('subbtn').innerHTML='✓ Submitted';loading=false}
+
+// ── STUDENT EDITOR EVENTS ──
+function updateStudentView(){const a=activeAssignment;if(!a)return;document.getElementById('q-badge').textContent=a.language+' · '+a.title;document.getElementById('q-title').textContent=a.title;document.getElementById('q-desc').textContent=a.description;document.getElementById('q-sig').textContent=a.functionSignature||'';document.getElementById('q-sig-wrap').style.display=a.functionSignature?'block':'none';document.getElementById('q-hints').innerHTML=(a.hints||[]).map(h=>`<p class="hint">${esc(h)}</p>`).join('');document.getElementById('q-hints-wrap').style.display=a.hints?.length?'block':'none';document.getElementById('runbtn').disabled=!skReady;const pb=document.getElementById('q-prog');if(queue.length>1&&queuePos>=0){pb.textContent=(queuePos+1)+' of '+queue.length;pb.style.display='inline-flex'}else pb.style.display='none';testRes={};renderTCs();renderPrevSubs()}
+function kd(e){if(e.key==='Tab'){e.preventDefault();const el=e.target,s=el.selectionStart;el.value=el.value.substring(0,s)+'    '+el.value.substring(el.selectionEnd);el.selectionStart=el.selectionEnd=s+4;inp()}}
+function inp(){lastKey=Date.now();ksN++;updLN();document.getElementById('cc').textContent='Chars: '+document.getElementById('editor').value.length;setAct('active')}
+function onPaste(){pasteN++;lastKey=Date.now();liveAlerts.unshift({type:'paste',student:sName,msg:'Paste detected',time:new Date()})}
+function syncS(){document.getElementById('lnums').scrollTop=document.getElementById('editor').scrollTop}
+function updLN(){const n=document.getElementById('editor').value.split('\n').length;document.getElementById('lnums').textContent=Array.from({length:n},(_,i)=>i+1).join('\n');document.getElementById('lc').textContent='Lines: '+n}
+function setAct(s){document.getElementById('adot').style.background=s==='active'?'var(--green)':'var(--yellow)';document.getElementById('astat').textContent=s==='active'?'Activity tracked · Live':'Idle — no typing detected'}
+
+// ── VIEW SWITCH ──
+function switchV(v){
+  const isT=v==='teacher';
+  if(!isT){['join-screen','lobby-screen','ended-screen','sv'].forEach(s=>document.getElementById(s).style.display='none');const m={join:'join-screen',lobby:'lobby-screen',ended:'ended-screen',editor:'sv'};document.getElementById(m[studentView]||'join-screen').style.display='flex'}
+  else{['join-screen','lobby-screen','ended-screen','sv'].forEach(s=>document.getElementById(s).style.display='none')}
+  document.getElementById('tv').style.display=isT?'flex':'none';
+  document.getElementById('bs').classList.toggle('on',!isT);document.getElementById('bt').classList.toggle('on',isT);
+  document.getElementById('nav-user').style.display=(!isT&&sName)?'block':'none';
+  if(isT){teacherTab('session');renderSession()}
+}
+
+function teacherTab(tab){
+  const map={session:'tv-session',live:'tv-live',assignments:'tv-assign',history:'tv-history'};
+  const tmap={session:'tab-session',live:'tab-live',assignments:'tab-assign',history:'tab-history'};
+  Object.keys(map).forEach(k=>{document.getElementById(map[k]).style.display='none';document.getElementById(tmap[k]).classList.remove('on')});
+  document.getElementById(map[tab]).style.display='flex';document.getElementById(tmap[tab]).classList.add('on');
+  if(tab==='live')renderT();
+  if(tab==='assignments'){renderABList();if(!editingDraft){if(assignments[0])editAssignment(assignments[0].id);else renderEditor()}}
+  if(tab==='session')renderSession();
+  if(tab==='history')loadAndRenderHistory();
+}
+
+// ── ASSIGNMENT BUILDER ──
+function newAssignment(){editingDraft={id:null,title:'',language:'Python',description:'',functionSignature:'',testCases:[{expr:'',expected:''}],hints:[''],difficulty:'Easy',timeLimit:20,published:false,createdAt:null};renderABList();renderEditor()}
+function editAssignment(id){const a=assignments.find(a=>a.id===id);if(!a)return;editingDraft={...a,testCases:a.testCases.map(tc=>({...tc})),hints:[...a.hints]};renderABList();renderEditor()}
+function renderABList(){const el=document.getElementById('ab-list');if(!el)return;el.innerHTML=[...assignments].sort((a,b)=>b.createdAt-a.createdAt).map(a=>{const inQ=queue.includes(a.id);const qIdx=queue.indexOf(a.id);return`<div class="ab-card ${editingDraft?.id===a.id?'sel':''}" onclick="editAssignment(${a.id})"><div class="ab-card-title">${esc(a.title)}</div><div class="ab-card-meta"><span class="pill p-lang">${esc(a.language)}</span><span class="pill ${a.difficulty==='Easy'?'p-easy':a.difficulty==='Hard'?'p-hard':'p-med'}">${a.difficulty}</span>${inQ?`<span class="pill p-queued">#${qIdx+1} Queued</span>`:`<span class="pill p-draft">Draft</span>`}</div><div class="ab-card-footer"><span style="font-size:11px;color:var(--text2)">${a.testCases.filter(t=>t.expr.trim()).length} tests · ${a.timeLimit}min</span>${!inQ?`<button class="btn btn-sec btn-sm" style="font-size:10px;padding:2px 8px" onclick="event.stopPropagation();addToQueue(${a.id})">+ Queue</button>`:`<button class="btn btn-sec btn-sm" style="font-size:10px;padding:2px 8px;color:var(--red)" onclick="event.stopPropagation();removeFromQueue(${qIdx})">✕ Remove</button>`}</div></div>`}).join('')}
+function renderEditor(){const el=document.getElementById('ab-editor');if(!el)return;if(!editingDraft){el.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text2);gap:12px;text-align:center;padding:20px"><div style="font-size:36px">📝</div><div style="font-weight:600;font-size:15px;color:var(--text)">No assignment selected</div><button class="btn btn-pri" onclick="newAssignment()" style="margin-top:4px">+ Create Assignment</button></div>`;return}const d=editingDraft;const inQ=queue.includes(d.id);el.innerHTML=`<div class="ab-form"><div class="ab-form-hdr"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-weight:600;font-size:15px">${d.id?'Edit':'New'} Assignment</span>${inQ?`<span class="pub-badge">#${queue.indexOf(d.id)+1} In Queue</span>`:'<span class="draft-badge">Not queued</span>'}</div><div style="display:flex;gap:7px;flex-wrap:wrap">${d.id?(!inQ?`<button class="btn btn-green btn-sm" onclick="addToQueue(${d.id})">+ Add to Queue</button>`:`<button class="btn btn-sec btn-sm" onclick="removeFromQueue(${queue.indexOf(d.id)})">✕ Remove from Queue</button>`):''}<button class="btn btn-sec btn-sm" onclick="saveAssignment()">Save</button></div></div>
+<div class="fg"><label>Title</label><input id="ab-title" class="fi" value="${esc(d.title)}" placeholder="e.g. Recursive Factorial"></div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px"><div class="fg"><label>Language</label><select id="ab-lang" class="fi">${['Python','JavaScript','Java'].map(l=>`<option ${d.language===l?'selected':''}>${l}</option>`).join('')}</select></div><div class="fg"><label>Difficulty</label><select id="ab-diff" class="fi">${['Easy','Medium','Hard'].map(l=>`<option ${d.difficulty===l?'selected':''}>${l}</option>`).join('')}</select></div><div class="fg"><label>Time limit (min)</label><input id="ab-time" class="fi" type="number" min="5" max="120" value="${d.timeLimit}"></div></div>
+<div class="fg"><label>Description</label><textarea id="ab-desc" class="fi" rows="4">${esc(d.description)}</textarea></div>
+<div class="fg"><label>Function Signature</label><input id="ab-sig" class="fi" value="${esc(d.functionSignature)}" style="font-family:monospace;font-size:13px"></div>
+<div class="fg"><div style="display:flex;justify-content:space-between;align-items:center"><label style="margin:0">Test Cases</label><button class="btn btn-sec btn-sm" onclick="addTC()">+ Add</button></div><div class="sect-box" style="margin-top:4px"><div class="tc-hdr"><div class="tc-hdr-lbl">Expression</div><div class="tc-hdr-lbl">Expected</div><div></div></div><div id="tc-list"></div></div></div>
+<div class="fg"><div style="display:flex;justify-content:space-between;align-items:center"><label style="margin:0">Hints</label><button class="btn btn-sec btn-sm" onclick="addHint()">+ Add</button></div><div id="hint-list" style="margin-top:4px"></div></div>
+${d.id?`<div style="border-top:1px solid var(--bd);padding-top:14px"><button class="del-btn" onclick="deleteAssignment(${d.id})">Delete this assignment</button></div>`:''}</div>`;renderTCList();renderHintList()}
+function renderTCList(){const el=document.getElementById('tc-list');if(!el)return;el.innerHTML=editingDraft.testCases.length?editingDraft.testCases.map((tc,i)=>`<div class="tc-grid"><input class="fi tc-expr" style="font-family:monospace;font-size:12px" placeholder="e.g. factorial(5)" value="${esc(tc.expr)}"><input class="fi tc-expected" style="font-family:monospace;font-size:12px" placeholder="e.g. 120" value="${esc(tc.expected)}"><button class="rmbtn" onclick="removeTC(${i})">✕</button></div>`).join(''):'<div style="text-align:center;padding:10px;color:var(--text2);font-size:12px">No test cases yet.</div>'}
+function renderHintList(){const el=document.getElementById('hint-list');if(!el)return;el.innerHTML=editingDraft.hints.length?editingDraft.hints.map((h,i)=>`<div style="display:flex;gap:8px;margin-bottom:8px"><input class="fi hint-inp" placeholder="e.g. Think about the base case…" value="${esc(h)}" style="flex:1"><button class="rmbtn" onclick="removeHint(${i})">✕</button></div>`).join(''):'<div style="font-size:12px;color:var(--text2);padding:6px 0">No hints yet.</div>'}
+function syncForm(){if(!editingDraft)return;editingDraft.title=document.getElementById('ab-title')?.value.trim()||editingDraft.title;editingDraft.language=document.getElementById('ab-lang')?.value||editingDraft.language;editingDraft.difficulty=document.getElementById('ab-diff')?.value||editingDraft.difficulty;editingDraft.timeLimit=parseInt(document.getElementById('ab-time')?.value)||editingDraft.timeLimit;editingDraft.description=document.getElementById('ab-desc')?.value||editingDraft.description;editingDraft.functionSignature=document.getElementById('ab-sig')?.value||editingDraft.functionSignature;editingDraft.testCases=[...document.querySelectorAll('.tc-grid')].map(r=>({expr:r.querySelector('.tc-expr').value,expected:r.querySelector('.tc-expected').value}));editingDraft.hints=[...document.querySelectorAll('.hint-inp')].map(i=>i.value)}
+function addTC(){syncForm();editingDraft.testCases.push({expr:'',expected:''});renderTCList()}
+function removeTC(i){syncForm();editingDraft.testCases.splice(i,1);renderTCList()}
+function addHint(){syncForm();editingDraft.hints.push('');renderHintList()}
+function removeHint(i){syncForm();editingDraft.hints.splice(i,1);renderHintList()}
+function saveAssignment(showT=true){if(!editingDraft)return false;syncForm();if(!editingDraft.title.trim()){showToast('Please enter a title.');return false}if(!editingDraft.id){editingDraft.id=Date.now();editingDraft.createdAt=new Date();assignments.push({...editingDraft,testCases:[...editingDraft.testCases],hints:[...editingDraft.hints]})}else{const idx=assignments.findIndex(a=>a.id===editingDraft.id);if(idx>=0)assignments[idx]={...editingDraft,testCases:[...editingDraft.testCases],hints:[...editingDraft.hints]}}renderABList();if(showT)showToast('Saved ✓');return true}
+function deleteAssignment(id){if(assignments.length<=1){showToast('Keep at least one assignment.');return}if(queue.includes(id))removeFromQueue(queue.indexOf(id));assignments=assignments.filter(a=>a.id!==id);if(activeAssignment?.id===id){activeAssignment=null;stopTimer()}editingDraft=null;renderABList();renderEditor();showToast('Deleted')}
+
+// ── TEACHER LIVE ──
+const MOCK_CODES=[`def factorial(n):\n    if n == 0:\n        return 1\n    return n * factorial(n - 1)\nprint(factorial(5))`,`def factorial(n):\n    if n == 0:\n        return 1`,`def factorial(n):\n    result = 1\n    for i in range(1, n + 1):\n        result *= i\n    return result`,`def factorial(n: int) -> int:\n    if n < 0: raise ValueError()\n    if n == 0: return 1\n    return n * factorial(n - 1)`,`def factorial(n):`,`def factorial(n):\n    if n == 0 or n == 1: return 1\n    return n * factorial(n-1)`];
+let mocks=[{id:1,name:'Alice Johnson',col:'#6366f1',status:'active',lines:6,t:340,pc:0,ks:210,sub:false,score:null,fb:null,code:MOCK_CODES[0],alerts:[],tr:null},{id:2,name:'Bob Smith',col:'#f59e0b',status:'idle',lines:4,t:280,pc:0,ks:90,sub:false,score:null,fb:null,code:MOCK_CODES[1],alerts:[{type:'idle',msg:'Inactive for 90s',time:new Date(Date.now()-45000)}],tr:null},{id:3,name:'Carol White',col:'#10b981',status:'submitted',lines:7,t:380,pc:1,ks:38,sub:true,score:62,fb:{summary:'Correct but used iteration instead of recursion.'},code:MOCK_CODES[2],alerts:[{type:'paste',msg:'Large paste detected',time:new Date(Date.now()-90000)}],tr:[{passed:true,got:1},{passed:true,got:120},{passed:true,got:3628800}]},{id:4,name:'David Lee',col:'#ec4899',status:'submitted',lines:9,t:390,pc:0,ks:312,sub:true,score:98,fb:{summary:'Excellent recursive solution. All tests passed.'},code:MOCK_CODES[3],alerts:[],tr:[{passed:true,got:1},{passed:true,got:120},{passed:true,got:3628800}]},{id:5,name:'Emma Davis',col:'#8b5cf6',status:'active',lines:1,t:120,pc:0,ks:22,sub:false,score:null,fb:null,code:MOCK_CODES[4],alerts:[],tr:null},{id:6,name:'Jake Morris',col:'#06b6d4',status:'submitted',lines:6,t:270,pc:0,ks:155,sub:true,score:91,fb:{summary:'Clean recursive solution. All tests passed.'},code:MOCK_CODES[5],alerts:[],tr:[{passed:true,got:1},{passed:true,got:120},{passed:true,got:3628800}]}];
+liveAlerts=[{type:'sub',student:'David Lee',msg:'Submitted · Score: 98/100',time:new Date(Date.now()-200000)},{type:'sub',student:'Jake Morris',msg:'Submitted · Score: 91/100',time:new Date(Date.now()-150000)},{type:'paste',student:'Carol White',msg:'Large paste detected',time:new Date(Date.now()-90000)},{type:'sub',student:'Carol White',msg:'Submitted · Score: 62/100',time:new Date(Date.now()-70000)},{type:'idle',student:'Bob Smith',msg:'Inactive for 90 seconds',time:new Date(Date.now()-45000)}];
+
+function getLive(){const code=document.getElementById('editor').value;const lines=code?code.split('\n').length:0;const idle=(Date.now()-lastKey)/1000;const status=submitted?'submitted':(idle>60?'idle':(ksN>0?'active':'idle'));const tr=Object.keys(testRes).length?getTCS().map(tc=>{const r=testRes[tc.id];return r?{passed:r.passed,got:r.got}:null}):null;return{id:0,name:sName||'You',col:'#58a6ff',status,lines,t:Math.floor((Date.now()-t0)/1000),pc:pasteN,ks:ksN,sub:submitted,score:liveFB?.score??null,fb:liveFB?{summary:liveFB.summary}:null,code,alerts:[],isLive:true,tr,inLobby:studentView==='lobby'}}
+function allS(){return sName?[getLive(),...mocks]:mocks}
+
+function renderT(){const ss=allS();document.getElementById('st-tot').textContent=ss.length;document.getElementById('st-act').textContent=ss.filter(s=>s.status==='active'&&!s.inLobby).length;document.getElementById('st-idl').textContent=ss.filter(s=>s.status==='idle').length;document.getElementById('st-sub').textContent=ss.filter(s=>s.sub).length;const alrN=liveAlerts.filter(a=>(Date.now()-a.time.getTime())<300000).length;document.getElementById('st-alr').textContent=alrN;document.getElementById('abadge').textContent=alrN;const hasQ=queue.length>0&&queuePos>=0;const canNext=hasQ&&queuePos<queue.length-1;const pnw=document.getElementById('push-next-wrap');const nql=document.getElementById('no-queue-label');if(hasQ){pnw.style.display='flex';nql.style.display='none';document.getElementById('live-assign-label').textContent=`Assignment ${queuePos+1} of ${queue.length}: ${activeAssignment?.title||''}`;const pnb=document.getElementById('push-next-btn');pnb.disabled=!canNext;pnb.textContent=canNext?'Push Next →':'Queue Done ✓';pnb.className=canNext?'btn btn-green btn-sm':'btn btn-sec btn-sm'}else{pnw.style.display='none';nql.style.display='block';nql.textContent=activeAssignment?'Live: '+activeAssignment.title:'No assignment active'}document.getElementById('alist').innerHTML=liveAlerts.length?liveAlerts.slice(0,20).map(a=>`<div class="aitem ${a.type==='sub'?'sub':a.type==='join'?'join':a.type}"><div class="aico">${a.type==='paste'?'📋':a.type==='idle'?'😴':a.type==='join'?'👋':'✅'}</div><div><div class="atxt"><strong>${a.student}</strong> — ${a.msg}</div><div class="atim">${fmtTime(a.time)}</div></div></div>`).join(''):'<div style="text-align:center;padding:20px;color:var(--text2);font-size:13px">No alerts yet</div>';document.getElementById('sgrid').innerHTML=ss.map(stCard).join('');document.getElementById('lupd').textContent='Updated just now'}
+
+function stCard(s){const ini=(s.name||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();const prog=Math.min(100,(Math.round(s.lines)/15)*100);const stLbl=s.inLobby?'⏳ In Lobby':s.status==='submitted'?'✓ Submitted':s.status==='idle'?'😴 Idle':'● Active';const stcls=s.inLobby?'st-lobby':`st-${s.status}`;const aB=(s.alerts||[]).map(a=>`<span class="malert ${a.type}">${a.type==='paste'?'📋 Paste':'😴 Idle'}</span>`).join('');const live=s.isLive?'<span class="livepill">LIVE</span>':'';const tbars=s.tr?`<div class="tbars">${s.tr.map((r,i)=>`<div class="tbar ${r?r.passed?'pass':'fail':''}" title="Test ${i+1}"></div>`).join('')}</div>`:'';return`<div class="stcard${s.alerts?.length?' alert':''}" onclick="openM(${s.id})"><div class="sthdr"><div class="av" style="background:${s.col}22;color:${s.col}">${ini}</div><div><div class="stn">${esc(s.name)}${live}</div><span class="stbadge ${stcls}">${stLbl}</span></div></div>${s.inLobby?`<div style="font-size:12px;color:var(--text2);text-align:center;padding:8px 0">Waiting for assignment…</div>`:`<div class="stmet"><div class="mrow"><span>Lines</span><span class="mv">${Math.round(s.lines)}</span></div><div class="pbar"><div class="pfill" style="width:${prog}%"></div></div><div class="mrow"><span>Keystrokes</span><span class="mv">${s.ks}</span></div>${s.sub&&s.score!=null?`<div class="mrow"><span>Score</span><span class="mv" style="color:${s.score>=60?'var(--green)':'var(--red)'}">${s.score}/100</span></div>`:''}</div>${tbars}`}${aB?`<div class="calerts">${aB}</div>`:''}</div>`}
+
+function openM(id){const s=allS().find(st=>st.id===id);if(!s)return;const ini=(s.name||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();const tcs=getTCS();const trHTML=s.tr&&tcs.length?`<div><div class="qst" style="margin-bottom:8px">Test Results</div><div style="display:flex;flex-direction:column;gap:6px">${tcs.map((tc,i)=>{const r=s.tr[i];const p=r&&r.passed;return`<div style="background:var(--bg3);border-left:3px solid ${p?'var(--green)':'var(--red)'};border-radius:5px;padding:8px 12px;display:flex;justify-content:space-between"><span style="font-family:monospace;font-size:12px;color:var(--text2)">${esc(tc.expr)}</span><span style="font-size:12px;font-weight:600;color:${p?'var(--green)':'var(--red)'}">${p?'✓ '+r.got:'✗ '+(r?.got!=null?r.got:'error')}</span></div>`}).join('')}</div></div>`:'';document.getElementById('mcontent').innerHTML=`<div class="mhdr"><div style="display:flex;align-items:center;gap:11px"><div class="av" style="width:46px;height:46px;font-size:17px;background:${s.col}22;color:${s.col}">${ini}</div><div><div style="font-size:17px;font-weight:700">${esc(s.name)}</div><span class="stbadge st-${s.status}">${s.status}</span></div></div><button class="cbtn" onclick="document.getElementById('modal').classList.add('hidden')">✕ Close</button></div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px"><div class="sc" style="padding:9px"><div class="sv2" style="font-size:17px">${Math.round(s.lines)}</div><div class="sl">Lines</div></div><div class="sc" style="padding:9px"><div class="sv2" style="font-size:17px">${s.ks}</div><div class="sl">Keystrokes</div></div><div class="sc" style="padding:9px"><div class="sv2" style="font-size:17px;color:${s.pc>0?'var(--red)':'var(--green)'}">${s.pc}</div><div class="sl">Pastes</div></div><div class="sc" style="padding:9px"><div class="sv2" style="font-size:17px">${fmtSec(s.t)}</div><div class="sl">Active</div></div></div>${trHTML}<div><div class="qst" style="margin-bottom:7px">Code</div><div class="cblk" style="max-height:180px;overflow-y:auto">${esc(s.code||'# No code yet')}</div></div>${s.alerts?.length?`<div><div class="qst" style="margin-bottom:7px;color:var(--red)">⚠️ Alerts</div>${s.alerts.map(a=>`<div class="aitem ${a.type}" style="margin-bottom:5px"><div class="aico">${a.type==='paste'?'📋':'😴'}</div><div><div class="atxt">${a.msg}</div><div class="atim">${fmtTime(a.time)}</div></div></div>`).join('')}</div>`:''}${s.sub&&s.fb?`<div style="background:rgba(63,185,80,.08);border:1px solid rgba(63,185,80,.2);border-radius:7px;padding:12px"><div style="font-weight:600;color:var(--green);margin-bottom:5px">✓ Submitted — Score: ${s.score}/100</div><div style="font-size:12px;color:var(--text2)">${s.fb.summary}</div></div>`:''}`;document.getElementById('modal').classList.remove('hidden')}
+function closeM(e){if(e.target.id==='modal')document.getElementById('modal').classList.add('hidden')}
+
+// ── EXPORT ──
+function exportResults(){if(!sessionSummary)return;const a=activeAssignment;const tcLabels=a?a.testCases.filter(tc=>tc.expr.trim()).map((tc,i)=>'Test '+(i+1)+': '+tc.expr):[];const headers=['Name','Score','Passed','Submitted',...tcLabels,'Keystrokes','Time Active (s)'];const liveS=allS();const rows=sessionSummary.results.map(r=>{const live=liveS.find(s=>s.name===r.name||s.isLive===r.isLive);const tcCols=tcLabels.map((_,i)=>r.tr?.[i]?(r.tr[i].passed?'Pass':'Fail'):'Not run');return[r.name,r.score!=null?r.score:'—',r.score!=null?(r.score>=60?'Yes':'No'):'—',r.sub?'Yes':'No',...tcCols,live?.ks??'—',live?.t??'—']});const meta=[['CodeClass Session Export'],['Assignment',a?.title||'—'],['Assignments Run',sessionSummary.assignmentsRun],['Date',new Date().toLocaleString()],['Duration (s)',sessionSummary.duration],['Students',sessionSummary.total],['Submitted',sessionSummary.submitted],['Average Score',sessionSummary.avgScore??'—'],['']];const toRow=r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',');const csv=[...meta.map(toRow),toRow(headers),...rows.map(toRow)].join('\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));const link=document.createElement('a');link.href=url;link.download='codeclass-session.csv';link.click();URL.revokeObjectURL(url);showToast('Exported ✓')}
+
+// ── SIMULATION ──
+function sim(){simTick++;if(session.active&&simJoinTick<MOCK_NAMES.length){if(simTick>simJoinTick*4+2&&!roster.find(r=>r.name===MOCK_NAMES[simJoinTick])){const name=MOCK_NAMES[simJoinTick];roster.push({id:'mock-'+simJoinTick,name,col:COLORS[(simJoinTick+1)%COLORS.length],joinedAt:new Date()});liveAlerts.unshift({type:'join',student:name,msg:'Joined the session',time:new Date()});simJoinTick++;if(document.getElementById('tv-session').style.display==='flex'){renderRoster();renderSession()}}}mocks[0].t+=3;if(!mocks[0].sub)mocks[0].ks+=Math.floor(Math.random()*6)+1;mocks[1].t+=3;if(simTick%10===0){if(mocks[1].status==='idle'&&Math.random()>.5){mocks[1].status='active';mocks[1].ks+=4;mocks[1].lines=Math.min(mocks[1].lines+1,10)}else if(mocks[1].status==='active'&&Math.random()>.65){mocks[1].status='idle';const e=liveAlerts.find(a=>a.student==='Bob Smith'&&a.type==='idle'&&(Date.now()-a.time.getTime())<60000);if(!e){liveAlerts.unshift({type:'idle',student:'Bob Smith',msg:'Inactive for over 60 seconds',time:new Date()});mocks[1].alerts=[{type:'idle',msg:'Inactive 60s',time:new Date()}]}}}mocks[4].t+=3;if(simTick%4===0&&mocks[4].lines<6){mocks[4].ks+=Math.floor(Math.random()*4)+1;mocks[4].lines=Math.min(mocks[4].lines+0.4,6)}const idle=(Date.now()-lastKey)/1000;if(idle>60&&!submitted)setAct('idle');else if(!submitted&&ksN>0)setAct('active');checkTimer();if(document.getElementById('tv-live')?.style.display==='flex')renderT();if(document.getElementById('tv-session')?.style.display==='flex'&&session.active)renderSession();updateLobby()}
+
+function showToast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .3s';setTimeout(()=>t.remove(),300)},2500)}
+function fmtTime(d){const s=Math.floor((Date.now()-d.getTime())/1000);return s<60?s+'s ago':Math.floor(s/60)+'m ago'}
+function fmtSec(s){s=Math.round(s);const m=Math.floor(s/60),sc=s%60;return m>0?m+'m '+sc+'s':sc+'s'}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+updLN();renderSession();
+window.addEventListener('load',initSkulpt);
+setInterval(sim,3000);
+</script>
+</body>
+</html>
